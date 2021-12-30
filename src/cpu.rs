@@ -1,3 +1,5 @@
+use std::path::Path;
+
 pub struct Opcode(u16);
 
 pub struct CPU {
@@ -19,7 +21,7 @@ impl CPU {
             registers: [0; 16],
             memory: [0; 4086],
             index_register: 0,
-            program_counter: 0,
+            program_counter: 0x200,
             pixel_state: [0; 64 * 32],
             delay_timer: 0,
             sound_timer: 0,
@@ -29,24 +31,33 @@ impl CPU {
         }
     }
 
+    pub fn load_program(&mut self, path: impl AsRef<Path>) {
+        let file = std::fs::read(path).expect("Could not read file");
+        assert!(file.len() < 4086 - 0x200);
+        // TODO: This can be done faster
+        for i in 0..file.len() {
+            self.memory[i + 0x200] = file[i];
+        }
+    }
+
     pub fn fetch_opcode(&self) -> Opcode {
         let least_significant_byte = self.memory[self.program_counter as usize];
         let most_significant_byte = self.memory[self.program_counter as usize + 1];
-        Opcode((least_significant_byte << 8) as u16 | most_significant_byte as u16)
+        Opcode((least_significant_byte as u16) << 8 | most_significant_byte as u16)
     }
 
-    pub fn decode_opcode(self, opcode: Opcode) {
+    pub fn decode_opcode(&mut self, opcode: Opcode) {
         let bytes = (
             (opcode.0 & 0xf000) >> 12 as u8,
             (opcode.0 & 0x0f00) >> 8 as u8,
             (opcode.0 & 0x00f0) >> 4 as u8,
             (opcode.0 & 0x000f) as u8,
         );
-
+        println!("{:X}{:X}{:X}{:x}", bytes.0, bytes.1, bytes.2, bytes.3);
         match bytes {
             (0x0, 0x0, 0xe, 0x0) => self.opcode_00e0(),
             (0x0, 0x0, 0xe, 0xe) => self.opcode_00ee(),
-            (0x1, _, _, _) => self.opcode_1nnn(),
+            (0x1, _, _, _) => self.opcode_1nnn(opcode),
             (0x2, _, _, _) => self.opcode_2nnn(),
             (0x3, _, _, _) => self.opcode_3xnn(),
             (0x4, _, _, _) => self.opcode_4xnn(),
@@ -79,8 +90,13 @@ impl CPU {
             (0xf, _, 0x5, 0x5) => self.opcode_fx55(),
             (0xf, _, 0x6, 0x5) => self.opcode_fx65(),
             (0x0, _, _, _) => self.opcode_0nnn(),
-            _ => panic!("opcode not supported"),
+            _ => panic!(
+                "opcode not supported: {:X}{:X}{:X}{:x}",
+                bytes.0, bytes.1, bytes.2, bytes.3
+            ),
         }
+
+        self.program_counter += 2;
     }
 
     // OpCode functions
@@ -90,10 +106,12 @@ impl CPU {
     pub fn opcode_00e0(&self) {
         println!("opcode_00e0")
     }
-    pub fn opcode_00ee(&self) {
+    pub fn opcode_00ee(&mut self) {
         println!("opcode_00ee")
     }
-    pub fn opcode_1nnn(&self) {
+    pub fn opcode_1nnn(&mut self, opcode: Opcode) {
+        let nnn = opcode.0 & 0x0fff;
+        self.program_counter = nnn;
         println!("opcode_1nnn")
     }
     pub fn opcode_2nnn(&self) {
