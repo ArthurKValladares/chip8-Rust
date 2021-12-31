@@ -59,19 +59,19 @@ impl CPU {
             (0x0, 0x0, 0xe, 0xe) => self.opcode_00ee(),
             (0x1, _, _, _) => self.opcode_1nnn(opcode),
             (0x2, _, _, _) => self.opcode_2nnn(),
-            (0x3, _, _, _) => self.opcode_3xnn(),
-            (0x4, _, _, _) => self.opcode_4xnn(),
-            (0x5, _, _, 0x0) => self.opcode_5xy0(),
-            (0x6, _, _, _) => self.opcode_6xnn(),
-            (0x7, _, _, _) => self.opcode_7xnn(),
-            (0x8, _, _, 0x0) => self.opcode_8xyo(),
-            (0x8, _, _, 0x1) => self.opcode_8xy1(),
-            (0x8, _, _, 0x2) => self.opcode_8xy2(),
-            (0x8, _, _, 0x3) => self.opcode_8xy3(),
-            (0x8, _, _, 0x4) => self.opcode_8xy4(),
-            (0x8, _, _, 0x5) => self.opcode_8xy5(),
-            (0x8, _, _, 0x6) => self.opcode_8xy6(),
-            (0x8, _, _, 0x7) => self.opcode_8xy7(),
+            (0x3, _, _, _) => self.opcode_3xnn(opcode),
+            (0x4, _, _, _) => self.opcode_4xnn(opcode),
+            (0x5, _, _, 0x0) => self.opcode_5xy0(opcode),
+            (0x6, _, _, _) => self.opcode_6xnn(opcode),
+            (0x7, _, _, _) => self.opcode_7xnn(opcode),
+            (0x8, _, _, 0x0) => self.opcode_8xyo(opcode),
+            (0x8, _, _, 0x1) => self.opcode_8xy1(opcode),
+            (0x8, _, _, 0x2) => self.opcode_8xy2(opcode),
+            (0x8, _, _, 0x3) => self.opcode_8xy3(opcode),
+            (0x8, _, _, 0x4) => self.opcode_8xy4(opcode),
+            (0x8, _, _, 0x5) => self.opcode_8xy5(opcode),
+            (0x8, _, _, 0x6) => self.opcode_8xy6(opcode),
+            (0x8, _, _, 0x7) => self.opcode_8xy7(opcode),
             (0x8, _, _, 0xe) => self.opcode_8xye(),
             (0x9, _, _, 0x0) => self.opcode_9xy0(),
             (0xa, _, _, _) => self.opcode_annn(),
@@ -103,57 +103,116 @@ impl CPU {
     pub fn opcode_0nnn(&self) {
         println!("opcode_0nnn")
     }
-    pub fn opcode_00e0(&self) {
+
+    pub fn opcode_00e0(&mut self) {
+        self.pixel_state = [0; 64 * 32];
         println!("opcode_00e0")
     }
+
     pub fn opcode_00ee(&mut self) {
         println!("opcode_00ee")
     }
+
     pub fn opcode_1nnn(&mut self, opcode: Opcode) {
         let nnn = opcode.0 & 0x0fff;
         self.program_counter = nnn;
         println!("opcode_1nnn")
     }
+
     pub fn opcode_2nnn(&self) {
         println!("opcode_2nnn")
     }
-    pub fn opcode_3xnn(&self) {
+
+    pub fn opcode_3xnn(&mut self, opcode: Opcode) {
+        let x = opcode.0 & 0x0f00 >> 8;
+        let nn = ((opcode.0 & 0x00ff) >> 4) as u8;
+        if self.registers[x as usize] == nn {
+            self.program_counter += 1;
+        }
         println!("opcode_3xnn")
     }
-    pub fn opcode_4xnn(&self) {
+
+    pub fn opcode_4xnn(&mut self, opcode: Opcode) {
+        let x = opcode.0 & 0x0f00 >> 8;
+        let nn = (opcode.0 & 0x00ff) as u8;
+        if self.registers[x as usize] != nn {
+            self.program_counter += 1;
+        }
         println!("opcode_4xnn")
     }
-    pub fn opcode_5xy0(&self) {
+
+    pub fn opcode_5xy0(&mut self, opcode: Opcode) {
+        let x = opcode.0 & 0x0f00 >> 8;
+        let y = ((opcode.0 & 0x00f0) >> 4) as u8;
+        if self.registers[x as usize] != self.registers[y as usize] {
+            self.program_counter += 1;
+        }
         println!("opcode_5xy0")
     }
-    pub fn opcode_6xnn(&self) {
+
+    pub fn opcode_6xnn(&mut self, opcode: Opcode) {
+        let x = opcode.0 & 0x0f00 >> 8;
+        let nn = (opcode.0 & 0x00ff) as u8;
+        self.registers[x as usize] = nn;
         println!("opcode_6xnn")
     }
-    pub fn opcode_7xnn(&self) {
+
+    pub fn opcode_7xnn(&mut self, opcode: Opcode) {
+        let x = opcode.0 & 0x0f00 >> 8;
+        let nn = (opcode.0 & 0x00ff) as u8;
+        self.registers[x as usize] += nn;
         println!("opcode_7xnn")
     }
-    pub fn opcode_8xyo(&self) {
+
+    pub fn opcode_8xyo(&mut self, opcode: Opcode) {
+        let x = opcode.0 & 0x0f00 >> 8;
+        let y = (opcode.0 & 0x00f0) as u8 >> 4;
+        self.registers[x as usize] = self.registers[y as usize];
         println!("opcode_8xyo")
     }
-    pub fn opcode_8xy1(&self) {
+
+    pub fn opcode_8xy1(&mut self, opcode: Opcode) {
+        let x = opcode.0 & 0x0f00 >> 8;
+        let y = (opcode.0 & 0x00f0) >> 4 as u8;
+        self.registers[x as usize] = self.registers[x as usize] | self.registers[y as usize];
         println!("opcode_8xy1")
     }
-    pub fn opcode_8xy2(&self) {
+
+    pub fn opcode_8xy2(&mut self, opcode: Opcode) {
+        let x = opcode.0 & 0x0f00 >> 8;
+        let y = (opcode.0 & 0x00f0) >> 4 as u8;
+        self.registers[x as usize] = self.registers[x as usize] & self.registers[y as usize];
         println!("opcode_8xy2")
     }
-    pub fn opcode_8xy3(&self) {
+
+    pub fn opcode_8xy3(&mut self, opcode: Opcode) {
+        let x = opcode.0 & 0x0f00 >> 8;
+        let y = (opcode.0 & 0x00f0) >> 4 as u8;
+        self.registers[x as usize] = self.registers[x as usize] ^ self.registers[y as usize];
         println!("opcode_8xy3")
     }
-    pub fn opcode_8xy4(&self) {
+
+    pub fn opcode_8xy4(&self, opcode: Opcode) {
+        let x = opcode.0 & 0x0f00 >> 8;
+        let y = (opcode.0 & 0x00f0) >> 4 as u8;
         println!("opcode_8xy4")
     }
-    pub fn opcode_8xy5(&self) {
+
+    pub fn opcode_8xy5(&self, opcode: Opcode) {
+        let x = opcode.0 & 0x0f00 >> 8;
+        let y = (opcode.0 & 0x00f0) >> 4 as u8;
         println!("opcode_8xy5")
     }
-    pub fn opcode_8xy6(&self) {
+
+    pub fn opcode_8xy6(&self, opcode: Opcode) {
+        let x = opcode.0 & 0x0f00 >> 8;
+        let y = (opcode.0 & 0x00f0) >> 4 as u8;
         println!("opcode_8xy6")
     }
-    pub fn opcode_8xy7(&self) {
+
+    pub fn opcode_8xy7(&self, opcode: Opcode) {
+        let x = opcode.0 & 0x0f00 >> 8;
+        let y = (opcode.0 & 0x00f0) >> 4 as u8;
         println!("opcode_8xy7")
     }
     pub fn opcode_8xye(&self) {

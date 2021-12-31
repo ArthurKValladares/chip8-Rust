@@ -10,6 +10,6 @@ fn main() {
         cpu.decode_opcode(opcode);
 
         // TODO: Actual timer
-        std::thread::sleep(std::time::Duration::new(1, 0));
+        std::thread::sleep(std::time::Duration::new(0, 1));
     }
 }
