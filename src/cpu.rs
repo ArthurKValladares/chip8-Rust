@@ -1,3 +1,4 @@
+use crate::fontset::CHIP8_FONTSET;
 use std::path::Path;
 
 pub struct Opcode(u16);
@@ -17,7 +18,7 @@ pub struct CPU {
 
 impl CPU {
     pub fn new() -> Self {
-        Self {
+        let mut ret = Self {
             registers: [0; 16],
             memory: [0; 4086],
             index_register: 0,
@@ -28,6 +29,14 @@ impl CPU {
             stack: [0; 16],
             stack_pointer: 0,
             keypad: [0; 16],
+        };
+        ret.load_fontset();
+        ret
+    }
+
+    fn load_fontset(&mut self) {
+        for (i, font) in CHIP8_FONTSET.iter().enumerate() {
+            self.memory[i] = *font;
         }
     }
 
@@ -72,7 +81,7 @@ impl CPU {
             (0x8, _, _, 0x5) => self.opcode_8xy5(opcode),
             (0x8, _, _, 0x6) => self.opcode_8xy6(opcode),
             (0x8, _, _, 0x7) => self.opcode_8xy7(opcode),
-            (0x8, _, _, 0xe) => self.opcode_8xye(),
+            (0x8, _, _, 0xe) => self.opcode_8xye(opcode),
             (0x9, _, _, 0x0) => self.opcode_9xy0(opcode),
             (0xa, _, _, _) => self.opcode_annn(opcode),
             (0xb, _, _, _) => self.opcode_bnnn(opcode),
@@ -194,10 +203,13 @@ impl CPU {
         println!("opcode_8xy5")
     }
 
-    pub fn opcode_8xy6(&self, opcode: Opcode) {
+    pub fn opcode_8xy6(&mut self, opcode: Opcode) {
         let x = opcode.0 & 0x0f00 >> 8;
-        let y = (opcode.0 & 0x00f0) >> 4 as u8;
-        println!("opcode_8xy6")
+        let y = ((opcode.0 & 0x00f0) >> 4) as u8;
+        let least_significant_y = y & 0b00000001;
+        let y_shifted = y >> 1;
+        self.registers[x as usize] = y_shifted;
+        self.registers[15] = least_significant_y;
     }
 
     pub fn opcode_8xy7(&self, opcode: Opcode) {
@@ -206,8 +218,13 @@ impl CPU {
         println!("opcode_8xy7")
     }
 
-    pub fn opcode_8xye(&self) {
-        println!("opcode_8xye")
+    pub fn opcode_8xye(&mut self, opcode: Opcode) {
+        let x = opcode.0 & 0x0f00 >> 8;
+        let y = ((opcode.0 & 0x00f0) >> 4) as u8;
+        let most_significant_y = (y & 0b10000000) >> 7;
+        let y_shifted = y << 1;
+        self.registers[x as usize] = y_shifted;
+        self.registers[15] = most_significant_y;
     }
 
     pub fn opcode_9xy0(&mut self, opcode: Opcode) {

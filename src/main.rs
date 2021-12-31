@@ -1,4 +1,5 @@
 mod cpu;
+mod fontset;
 
 use crate::cpu::CPU;
 
