@@ -73,9 +73,9 @@ impl CPU {
             (0x8, _, _, 0x6) => self.opcode_8xy6(opcode),
             (0x8, _, _, 0x7) => self.opcode_8xy7(opcode),
             (0x8, _, _, 0xe) => self.opcode_8xye(),
-            (0x9, _, _, 0x0) => self.opcode_9xy0(),
-            (0xa, _, _, _) => self.opcode_annn(),
-            (0xb, _, _, _) => self.opcode_bnnn(),
+            (0x9, _, _, 0x0) => self.opcode_9xy0(opcode),
+            (0xa, _, _, _) => self.opcode_annn(opcode),
+            (0xb, _, _, _) => self.opcode_bnnn(opcode),
             (0xc, _, _, _) => self.opcode_cxnn(),
             (0xd, _, _, _) => self.opcode_dxyn(),
             (0xe, _, 0x9, 0xe) => self.opcode_ex9e(),
@@ -84,11 +84,11 @@ impl CPU {
             (0xf, _, 0x0, 0xa) => self.opcode_fx0a(),
             (0xf, _, 0x1, 0x5) => self.opcode_fx15(),
             (0xf, _, 0x1, 0x8) => self.opcode_fx18(),
-            (0xf, _, 0x1, 0xe) => self.opcode_fx1e(),
+            (0xf, _, 0x1, 0xe) => self.opcode_fx1e(opcode),
             (0xf, _, 0x2, 0x9) => self.opcode_fx29(),
             (0xf, _, 0x3, 0x3) => self.opcode_fx33(),
-            (0xf, _, 0x5, 0x5) => self.opcode_fx55(),
-            (0xf, _, 0x6, 0x5) => self.opcode_fx65(),
+            (0xf, _, 0x5, 0x5) => self.opcode_fx55(opcode),
+            (0xf, _, 0x6, 0x5) => self.opcode_fx65(opcode),
             (0x0, _, _, _) => self.opcode_0nnn(),
             _ => panic!(
                 "opcode not supported: {:X}{:X}{:X}{:x}",
@@ -106,7 +106,6 @@ impl CPU {
 
     pub fn opcode_00e0(&mut self) {
         self.pixel_state = [0; 64 * 32];
-        println!("opcode_00e0")
     }
 
     pub fn opcode_00ee(&mut self) {
@@ -129,7 +128,6 @@ impl CPU {
         if self.registers[x as usize] == nn {
             self.program_counter += 1;
         }
-        println!("opcode_3xnn")
     }
 
     pub fn opcode_4xnn(&mut self, opcode: Opcode) {
@@ -138,58 +136,50 @@ impl CPU {
         if self.registers[x as usize] != nn {
             self.program_counter += 1;
         }
-        println!("opcode_4xnn")
     }
 
     pub fn opcode_5xy0(&mut self, opcode: Opcode) {
         let x = opcode.0 & 0x0f00 >> 8;
         let y = ((opcode.0 & 0x00f0) >> 4) as u8;
-        if self.registers[x as usize] != self.registers[y as usize] {
+        if self.registers[x as usize] == self.registers[y as usize] {
             self.program_counter += 1;
         }
-        println!("opcode_5xy0")
     }
 
     pub fn opcode_6xnn(&mut self, opcode: Opcode) {
         let x = opcode.0 & 0x0f00 >> 8;
         let nn = (opcode.0 & 0x00ff) as u8;
         self.registers[x as usize] = nn;
-        println!("opcode_6xnn")
     }
 
     pub fn opcode_7xnn(&mut self, opcode: Opcode) {
         let x = opcode.0 & 0x0f00 >> 8;
         let nn = (opcode.0 & 0x00ff) as u8;
         self.registers[x as usize] += nn;
-        println!("opcode_7xnn")
     }
 
     pub fn opcode_8xyo(&mut self, opcode: Opcode) {
         let x = opcode.0 & 0x0f00 >> 8;
         let y = (opcode.0 & 0x00f0) as u8 >> 4;
         self.registers[x as usize] = self.registers[y as usize];
-        println!("opcode_8xyo")
     }
 
     pub fn opcode_8xy1(&mut self, opcode: Opcode) {
         let x = opcode.0 & 0x0f00 >> 8;
         let y = (opcode.0 & 0x00f0) >> 4 as u8;
         self.registers[x as usize] = self.registers[x as usize] | self.registers[y as usize];
-        println!("opcode_8xy1")
     }
 
     pub fn opcode_8xy2(&mut self, opcode: Opcode) {
         let x = opcode.0 & 0x0f00 >> 8;
         let y = (opcode.0 & 0x00f0) >> 4 as u8;
         self.registers[x as usize] = self.registers[x as usize] & self.registers[y as usize];
-        println!("opcode_8xy2")
     }
 
     pub fn opcode_8xy3(&mut self, opcode: Opcode) {
         let x = opcode.0 & 0x0f00 >> 8;
         let y = (opcode.0 & 0x00f0) >> 4 as u8;
         self.registers[x as usize] = self.registers[x as usize] ^ self.registers[y as usize];
-        println!("opcode_8xy3")
     }
 
     pub fn opcode_8xy4(&self, opcode: Opcode) {
@@ -215,18 +205,29 @@ impl CPU {
         let y = (opcode.0 & 0x00f0) >> 4 as u8;
         println!("opcode_8xy7")
     }
+
     pub fn opcode_8xye(&self) {
         println!("opcode_8xye")
     }
-    pub fn opcode_9xy0(&self) {
-        println!("opcode_9xy0")
+
+    pub fn opcode_9xy0(&mut self, opcode: Opcode) {
+        let x = opcode.0 & 0x0f00 >> 8;
+        let y = (opcode.0 & 0x00f0) >> 4 as u8;
+        if self.registers[x as usize] != self.registers[y as usize] {
+            self.program_counter += 1;
+        }
     }
-    pub fn opcode_annn(&self) {
-        println!("opcode_annn")
+
+    pub fn opcode_annn(&mut self, opcode: Opcode) {
+        let nnn = opcode.0 & 0x0fff;
+        self.index_register = self.memory[nnn as usize] as u16;
     }
-    pub fn opcode_bnnn(&self) {
-        println!("opcode_bnnn")
+
+    pub fn opcode_bnnn(&mut self, opcode: Opcode) {
+        let nnn = opcode.0 & 0x0fff;
+        self.program_counter = self.registers[0] as u16 + nnn as u16;
     }
+
     pub fn opcode_cxnn(&self) {
         println!("opcode_cxnn")
     }
@@ -251,8 +252,9 @@ impl CPU {
     pub fn opcode_fx18(&self) {
         println!("opcode_fx18")
     }
-    pub fn opcode_fx1e(&self) {
-        println!("opcode_fx1e")
+    pub fn opcode_fx1e(&mut self, opcode: Opcode) {
+        let x = opcode.0 & 0x0f00 >> 8 as u8;
+        self.index_register += x;
     }
     pub fn opcode_fx29(&self) {
         println!("opcode_fx29")
@@ -260,10 +262,20 @@ impl CPU {
     pub fn opcode_fx33(&self) {
         println!("opcode_fx33")
     }
-    pub fn opcode_fx55(&self) {
-        println!("opcode_fx55")
+
+    pub fn opcode_fx55(&mut self, opcode: Opcode) {
+        let x = opcode.0 & 0x0f00 >> 8 as u8;
+        for i in 0..x + 1 {
+            self.memory[self.index_register as usize] = self.registers[i as usize];
+            self.index_register += 1;
+        }
     }
-    pub fn opcode_fx65(&self) {
-        println!("opcode_fx65")
+
+    pub fn opcode_fx65(&mut self, opcode: Opcode) {
+        let x = opcode.0 & 0x0f00 >> 8 as u8;
+        for i in 0..x + 1 {
+            self.registers[i as usize] = self.memory[self.index_register as usize];
+            self.index_register += 1;
+        }
     }
 }
